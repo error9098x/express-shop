@@ -1,14 +1,24 @@
 const express = require('express');
 const session = require('express-session');
+const csrf = require('csurf');
 const bodyParser = require('body-parser');
 
 const app = express();
 app.use(bodyParser.json());
 app.use(session({
-  secret: 'shop-secret',
+  name: 'shop.sid',
+  secret: process.env.SESSION_SECRET || 'fallback-secret-change-me',
   resave: false,
-  saveUninitialized: true
+  saveUninitialized: true,
+  cookie: {
+    domain: undefined,
+    expires: new Date(Date.now() + 24 * 60 * 60 * 1000),
+    httpOnly: true,
+    path: '/',
+    secure: process.env.NODE_ENV === 'production'
+  }
 }));
+app.use(csrf({ cookie: { httpOnly: true, secure: process.env.NODE_ENV === 'production' } }));
 
 // Vulnerability 1: Price manipulation - client-side price
 app.post('/checkout', (req, res) => {
